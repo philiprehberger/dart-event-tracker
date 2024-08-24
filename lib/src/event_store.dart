@@ -55,6 +55,27 @@ class EventStore {
   /// The number of events in the store.
   int get count => _events.length;
 
+  /// Query events with optional predicate, limit, and offset.
+  List<TrackedEvent> query({
+    bool Function(TrackedEvent)? where,
+    int? limit,
+    int? offset,
+  }) {
+    var results = where != null ? _events.where(where).toList() : List.of(_events);
+    if (offset != null && offset > 0) {
+      results = results.skip(offset).toList();
+    }
+    if (limit != null && limit > 0) {
+      results = results.take(limit).toList();
+    }
+    return results;
+  }
+
+  /// Get all distinct event names.
+  List<String> distinctNames() {
+    return _events.map((e) => e.name).toSet().toList()..sort();
+  }
+
   /// Export all events as a formatted string.
   String export() {
     final buffer = StringBuffer();

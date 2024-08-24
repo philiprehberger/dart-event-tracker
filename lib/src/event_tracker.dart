@@ -8,6 +8,9 @@ import 'tracked_event.dart';
 class EventTracker {
   final List<EventSink> _sinks = [];
   final List<bool Function(TrackedEvent)> _filters = [];
+  Duration? _dedupeWindow;
+  TrackedEvent? _lastEvent;
+  final List<TrackedEvent Function(TrackedEvent)> _enrichers = [];
 
   /// The internal event store for querying tracked events.
   final EventStore store = EventStore();
@@ -33,23 +36,61 @@ class EventTracker {
     _filters.add(filter);
   }
 
+  /// Enable event deduplication within a time window.
+  ///
+  /// Events with the same name and properties within [window] are suppressed.
+  void deduplicate(Duration window) {
+    _dedupeWindow = window;
+  }
+
+  /// Add an enricher that transforms events before they are sunk.
+  ///
+  /// Enrichers run in order and can add context like device info or session ID.
+  void addEnricher(TrackedEvent Function(TrackedEvent) enricher) {
+    _enrichers.add(enricher);
+  }
+
   /// Track a new event with the given [name] and optional [properties].
   ///
   /// The event is stored in the internal [store] and sent to all sinks,
   /// provided it passes all registered filters.
   Future<void> track(String name, {Map<String, String>? properties}) async {
-    final event = TrackedEvent(name, properties: properties);
+    var event = TrackedEvent(name, properties: properties);
+
+    // Check deduplication
+    if (_dedupeWindow != null && _lastEvent != null) {
+      final elapsed = event.timestamp.difference(_lastEvent!.timestamp);
+      if (elapsed <= _dedupeWindow! &&
+          event.name == _lastEvent!.name &&
+          _mapsEqual(event.properties, _lastEvent!.properties)) {
+        return;
+      }
+    }
+
+    // Run enrichers
+    for (final enricher in _enrichers) {
+      event = enricher(event);
+    }
 
     // Apply filters
     for (final filter in _filters) {
       if (!filter(event)) return;
     }
 
+    _lastEvent = event;
     store.add(event);
 
     for (final sink in _sinks) {
       await sink.send([event]);
     }
+  }
+
+  static bool _mapsEqual(Map<String, String> a, Map<String, String> b) {
+    if (a.length != b.length) return false;
+    for (final key in a.keys) {
+      if (a[key] != b[key]) return false;
+    }
+    return true;
   }
 
   /// Force all [BufferedSink] instances to flush their pending events.
