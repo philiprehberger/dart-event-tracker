@@ -16,7 +16,7 @@ Add to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  philiprehberger_event_tracker: ^0.2.0
+  philiprehberger_event_tracker: ^0.3.0
 ```
 
 Then run:
@@ -116,6 +116,67 @@ final results = tracker.store.search('signup');
 final exported = tracker.store.export();
 ```
 
+### Priority Levels
+
+```dart
+import 'package:philiprehberger_event_tracker/event_tracker.dart';
+
+final event = TrackedEvent(
+  'error',
+  priority: EventPriority.critical,
+  properties: {'message': 'Out of memory'},
+);
+
+final tracker = EventTracker();
+tracker.addSink(const ConsoleSink());
+await tracker.track('page_view'); // default normal priority
+
+// Query by priority
+final critical = tracker.store.byPriority(EventPriority.critical);
+```
+
+### Session Tracking
+
+```dart
+import 'package:philiprehberger_event_tracker/event_tracker.dart';
+
+final tracker = EventTracker();
+tracker.addSink(const ConsoleSink());
+
+// Start a session (auto-generates ID if not provided)
+tracker.startSession(id: 'user-session-1');
+
+await tracker.track('page_view', properties: {'page': '/home'});
+await tracker.track('click', properties: {'button': 'signup'});
+
+// All tracked events automatically include the session ID
+final sessionEvents = tracker.store.bySession('user-session-1');
+print('Session events: ${sessionEvents.length}');
+
+tracker.endSession();
+```
+
+### Lifecycle Hooks
+
+```dart
+import 'package:philiprehberger_event_tracker/event_tracker.dart';
+
+final tracker = EventTracker();
+
+// Fire after each event is tracked
+tracker.onTrack((event) {
+  print('Tracked: ${event.name}');
+});
+
+// Fire after flush completes
+tracker.onFlush(() {
+  print('Flush complete');
+});
+
+await tracker.track('page_view');
+await tracker.flush();
+```
+
 ### Paginated Queries
 
 ```dart
@@ -154,11 +215,22 @@ await tracker.track('event'); // Sent to all three sinks
 
 | Method / Property | Description |
 |-------------------|-------------|
-| `TrackedEvent(name, {properties, timestamp, id})` | Create a tracked event |
+| `TrackedEvent(name, {properties, timestamp, id, priority, sessionId})` | Create a tracked event |
 | `name` | Event name |
 | `properties` | Key-value string map |
 | `timestamp` | When the event occurred |
 | `id` | Unique event identifier |
+| `priority` | Event priority level (default `EventPriority.normal`) |
+| `sessionId` | Optional session identifier |
+
+### `EventPriority`
+
+| Value | Description |
+|-------|-------------|
+| `low` | Low priority event |
+| `normal` | Normal priority event (default) |
+| `high` | High priority event |
+| `critical` | Critical priority event |
 
 ### `EventSink`
 
@@ -210,6 +282,8 @@ await tracker.track('event'); // Sent to all three sinks
 | `count` | Number of stored events |
 | `query({where, limit, offset})` | Query events with optional predicate, limit, and offset |
 | `distinctNames()` | Get all distinct event names, sorted |
+| `byPriority(priority)` | Return events with the given priority level |
+| `bySession(sessionId)` | Return events with the given session ID |
 | `export()` | Export all events as a formatted string |
 
 ### `EventTracker`
@@ -222,6 +296,11 @@ await tracker.track('event'); // Sent to all three sinks
 | `addFilter(filter)` | Add a filter (all filters must pass) |
 | `deduplicate(window)` | Enable event deduplication within a time window |
 | `addEnricher(enricher)` | Add an enricher that transforms events before sinking |
+| `onTrack(callback)` | Register a callback fired after each event is tracked |
+| `onFlush(callback)` | Register a callback fired after flush completes |
+| `startSession({id})` | Start a session (auto-generates ID if not provided) |
+| `endSession()` | End the current session |
+| `currentSessionId` | The current session ID, or null |
 | `flush()` | Force all buffered sinks to flush |
 | `store` | Access the internal EventStore |
 

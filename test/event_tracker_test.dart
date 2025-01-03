@@ -42,6 +42,26 @@ void main() {
       final event = TrackedEvent('click');
       expect(event.toString(), contains('click'));
     });
+
+    test('defaults to normal priority', () {
+      final event = TrackedEvent('test');
+      expect(event.priority, EventPriority.normal);
+    });
+
+    test('accepts custom priority', () {
+      final event = TrackedEvent('test', priority: EventPriority.critical);
+      expect(event.priority, EventPriority.critical);
+    });
+
+    test('defaults to null sessionId', () {
+      final event = TrackedEvent('test');
+      expect(event.sessionId, isNull);
+    });
+
+    test('accepts custom sessionId', () {
+      final event = TrackedEvent('test', sessionId: 'sess-1');
+      expect(event.sessionId, 'sess-1');
+    });
   });
 
   group('EventStore', () {
@@ -133,6 +153,26 @@ void main() {
       final output = store.export();
       expect(output, contains('[click]'));
       expect(output, contains('{k: v}'));
+    });
+
+    test('byPriority filters by priority level', () {
+      store.add(TrackedEvent('a', priority: EventPriority.low));
+      store.add(TrackedEvent('b', priority: EventPriority.high));
+      store.add(TrackedEvent('c', priority: EventPriority.high));
+      store.add(TrackedEvent('d', priority: EventPriority.normal));
+      expect(store.byPriority(EventPriority.high).length, 2);
+      expect(store.byPriority(EventPriority.low).length, 1);
+      expect(store.byPriority(EventPriority.critical).length, 0);
+    });
+
+    test('bySession filters by session ID', () {
+      store.add(TrackedEvent('a', sessionId: 'sess-1'));
+      store.add(TrackedEvent('b', sessionId: 'sess-2'));
+      store.add(TrackedEvent('c', sessionId: 'sess-1'));
+      store.add(TrackedEvent('d'));
+      expect(store.bySession('sess-1').length, 2);
+      expect(store.bySession('sess-2').length, 1);
+      expect(store.bySession('sess-3').length, 0);
     });
   });
 
@@ -303,6 +343,61 @@ void main() {
       expect(inner.events.length, 0);
       await tracker.flush();
       expect(inner.events.length, 2);
+    });
+
+    test('onTrack callback fires after tracking', () async {
+      final tracker = EventTracker();
+      final tracked = <TrackedEvent>[];
+      tracker.onTrack((event) => tracked.add(event));
+      await tracker.track('a');
+      await tracker.track('b');
+      expect(tracked.length, 2);
+      expect(tracked[0].name, 'a');
+      expect(tracked[1].name, 'b');
+    });
+
+    test('onFlush callback fires after flush', () async {
+      final tracker = EventTracker();
+      var flushCount = 0;
+      tracker.onFlush(() => flushCount++);
+      await tracker.flush();
+      await tracker.flush();
+      expect(flushCount, 2);
+    });
+
+    test('startSession sets currentSessionId', () {
+      final tracker = EventTracker();
+      expect(tracker.currentSessionId, isNull);
+      tracker.startSession(id: 'my-session');
+      expect(tracker.currentSessionId, 'my-session');
+    });
+
+    test('startSession auto-generates id when not provided', () {
+      final tracker = EventTracker();
+      tracker.startSession();
+      expect(tracker.currentSessionId, isNotNull);
+      expect(tracker.currentSessionId!, startsWith('session-'));
+    });
+
+    test('endSession clears currentSessionId', () {
+      final tracker = EventTracker();
+      tracker.startSession(id: 'sess');
+      tracker.endSession();
+      expect(tracker.currentSessionId, isNull);
+    });
+
+    test('events automatically get sessionId during active session', () async {
+      final tracker = EventTracker();
+      await tracker.track('before');
+      tracker.startSession(id: 'sess-42');
+      await tracker.track('during');
+      tracker.endSession();
+      await tracker.track('after');
+
+      final events = tracker.store.all();
+      expect(events[0].sessionId, isNull);
+      expect(events[1].sessionId, 'sess-42');
+      expect(events[2].sessionId, isNull);
     });
   });
 

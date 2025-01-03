@@ -76,6 +76,14 @@ class EventStore {
     return _events.map((e) => e.name).toSet().toList()..sort();
   }
 
+  /// Return all events with the given [priority].
+  List<TrackedEvent> byPriority(EventPriority priority) =>
+      _events.where((e) => e.priority == priority).toList();
+
+  /// Return all events with the given [sessionId].
+  List<TrackedEvent> bySession(String sessionId) =>
+      _events.where((e) => e.sessionId == sessionId).toList();
+
   /// Export all events as a formatted string.
   String export() {
     final buffer = StringBuffer();
