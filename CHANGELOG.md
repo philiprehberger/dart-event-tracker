@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-04-02
+
+### Added
+- `EventStore` now supports optional `maxCapacity` with FIFO eviction
+- `EventStore.onEvict` callback fires when events are evicted due to capacity limits
+- `EventStore.isFull` getter indicates whether the store has reached capacity
+- `EventStore.remaining` getter returns remaining capacity
+- `EventStore.purgeOlderThan()` removes events older than a given duration
+
 ## [0.3.0] - 2026-04-02
 
 ### Added
