@@ -1,10 +1,6 @@
 ## Summary
 
-<!-- Brief description of what this PR does -->
-
-## Changes
-
--
+<!-- Brief description of the changes -->
 
 ## Test plan
 
