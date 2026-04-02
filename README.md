@@ -16,7 +16,7 @@ Add to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  philiprehberger_event_tracker: ^0.1.0
+  philiprehberger_event_tracker: ^0.2.0
 ```
 
 Then run:
@@ -68,6 +68,39 @@ tracker.addFilter(EventFilter.bySample(0.5));
 tracker.addFilter(EventFilter.custom((e) => e.properties.containsKey('userId')));
 ```
 
+### Deduplication
+
+```dart
+import 'package:philiprehberger_event_tracker/event_tracker.dart';
+
+final tracker = EventTracker();
+tracker.addSink(const ConsoleSink());
+
+// Suppress duplicate events within a 1-second window
+tracker.deduplicate(const Duration(seconds: 1));
+
+await tracker.track('click', properties: {'button': 'ok'});
+await tracker.track('click', properties: {'button': 'ok'}); // suppressed
+```
+
+### Enrichers
+
+```dart
+import 'package:philiprehberger_event_tracker/event_tracker.dart';
+
+final tracker = EventTracker();
+tracker.addSink(const ConsoleSink());
+
+// Add session ID to every event
+tracker.addEnricher((event) => TrackedEvent(
+  event.name,
+  properties: {...event.properties, 'session': 'abc-123'},
+));
+
+await tracker.track('page_view', properties: {'page': '/home'});
+// Event will include both 'page' and 'session' properties
+```
+
 ### Querying the Store
 
 ```dart
@@ -81,6 +114,25 @@ final views = tracker.store.eventsNamed('page_view');
 final summary = tracker.store.summary(); // {'page_view': 1, 'click': 1}
 final results = tracker.store.search('signup');
 final exported = tracker.store.export();
+```
+
+### Paginated Queries
+
+```dart
+import 'package:philiprehberger_event_tracker/event_tracker.dart';
+
+final store = EventStore();
+// ... add events ...
+
+// Query with predicate, limit, and offset
+final page = store.query(
+  where: (e) => e.name == 'click',
+  limit: 10,
+  offset: 20,
+);
+
+// Get all distinct event names
+final names = store.distinctNames(); // ['click', 'page_view', ...]
 ```
 
 ### Multiple Sinks
@@ -156,6 +208,8 @@ await tracker.track('event'); // Sent to all three sinks
 | `summary()` | Return map of event name to count |
 | `clear()` | Remove all events |
 | `count` | Number of stored events |
+| `query({where, limit, offset})` | Query events with optional predicate, limit, and offset |
+| `distinctNames()` | Get all distinct event names, sorted |
 | `export()` | Export all events as a formatted string |
 
 ### `EventTracker`
@@ -166,6 +220,8 @@ await tracker.track('event'); // Sent to all three sinks
 | `addSink(sink)` | Add an event sink |
 | `removeSink(sink)` | Remove an event sink |
 | `addFilter(filter)` | Add a filter (all filters must pass) |
+| `deduplicate(window)` | Enable event deduplication within a time window |
+| `addEnricher(enricher)` | Add an enricher that transforms events before sinking |
 | `flush()` | Force all buffered sinks to flush |
 | `store` | Access the internal EventStore |
 

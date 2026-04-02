@@ -305,4 +305,84 @@ void main() {
       expect(inner.events.length, 2);
     });
   });
+
+  group('Deduplication', () {
+    test('suppresses duplicate events within window', () async {
+      final sink = MemorySink();
+      final tracker = EventTracker();
+      tracker.addSink(sink);
+      tracker.deduplicate(const Duration(seconds: 1));
+
+      tracker.track('click', properties: {'button': 'ok'});
+      tracker.track('click', properties: {'button': 'ok'});
+      tracker.track('click', properties: {'button': 'ok'});
+
+      await tracker.flush();
+      expect(sink.events.length, equals(1));
+    });
+
+    test('allows different events', () async {
+      final sink = MemorySink();
+      final tracker = EventTracker();
+      tracker.addSink(sink);
+      tracker.deduplicate(const Duration(seconds: 1));
+
+      tracker.track('click');
+      tracker.track('view');
+
+      await tracker.flush();
+      expect(sink.events.length, equals(2));
+    });
+  });
+
+  group('Enrichers', () {
+    test('enricher adds properties to events', () async {
+      final tracker = EventTracker();
+      tracker.addEnricher((event) => TrackedEvent(
+        event.name,
+        properties: {...event.properties, 'session': 'abc'},
+      ));
+      await tracker.track('test');
+      expect(tracker.store.all().first.properties['session'], equals('abc'));
+    });
+
+    test('multiple enrichers chain', () async {
+      final tracker = EventTracker();
+      tracker.addEnricher((e) => TrackedEvent(e.name, properties: {...e.properties, 'a': '1'}));
+      tracker.addEnricher((e) => TrackedEvent(e.name, properties: {...e.properties, 'b': '2'}));
+      await tracker.track('test');
+      final props = tracker.store.all().first.properties;
+      expect(props['a'], equals('1'));
+      expect(props['b'], equals('2'));
+    });
+  });
+
+  group('EventStore query', () {
+    test('query with predicate', () {
+      final store = EventStore();
+      store.add(TrackedEvent('a'));
+      store.add(TrackedEvent('b'));
+      store.add(TrackedEvent('a'));
+      final results = store.query(where: (e) => e.name == 'a');
+      expect(results.length, equals(2));
+    });
+
+    test('query with limit and offset', () {
+      final store = EventStore();
+      for (var i = 0; i < 10; i++) {
+        store.add(TrackedEvent('e$i'));
+      }
+      final page = store.query(limit: 3, offset: 2);
+      expect(page.length, equals(3));
+      expect(page.first.name, equals('e2'));
+    });
+
+    test('distinctNames returns sorted unique names', () {
+      final store = EventStore();
+      store.add(TrackedEvent('b'));
+      store.add(TrackedEvent('a'));
+      store.add(TrackedEvent('b'));
+      expect(store.distinctNames(), equals(['a', 'b']));
+    });
+  });
 }

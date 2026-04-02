@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-04-01
+
+### Added
+- Event deduplication within a configurable time window via `deduplicate()`
+- Event enrichers that transform events before sinking via `addEnricher()`
+- Paginated event queries with `EventStore.query()` supporting predicate, limit, and offset
+- `EventStore.distinctNames()` for retrieving sorted unique event names
+
 ## [0.1.0] - 2026-04-01
 
 ### Added
