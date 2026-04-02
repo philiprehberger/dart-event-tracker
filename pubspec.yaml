@@ -1,0 +1,19 @@
+name: philiprehberger_event_tracker
+description: >-
+  Analytics event tracking with filtering, buffering, and multi-sink export
+version: 0.1.0
+homepage: https://philiprehberger.com/open-source-packages/dart/philiprehberger_event_tracker
+repository: https://github.com/philiprehberger/dart-event-tracker
+issue_tracker: https://github.com/philiprehberger/dart-event-tracker/issues
+
+topics:
+  - analytics
+  - events
+  - tracking
+
+environment:
+  sdk: ^3.5.0
+
+dev_dependencies:
+  test: ^1.25.0
+  lints: ^6.0.0
