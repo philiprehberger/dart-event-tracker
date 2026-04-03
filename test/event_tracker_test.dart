@@ -480,4 +480,80 @@ void main() {
       expect(store.distinctNames(), equals(['a', 'b']));
     });
   });
+
+  group('EventStore capacity', () {
+    test('unbounded store has no capacity limit', () {
+      final store = EventStore();
+      expect(store.maxCapacity, isNull);
+      expect(store.isFull, isFalse);
+      expect(store.remaining, isNull);
+    });
+
+    test('rejects non-positive maxCapacity', () {
+      expect(() => EventStore(maxCapacity: 0), throwsArgumentError);
+      expect(() => EventStore(maxCapacity: -1), throwsArgumentError);
+    });
+
+    test('evicts oldest event when at capacity', () {
+      final store = EventStore(maxCapacity: 3);
+      store.add(TrackedEvent('a'));
+      store.add(TrackedEvent('b'));
+      store.add(TrackedEvent('c'));
+      expect(store.isFull, isTrue);
+      expect(store.remaining, 0);
+
+      store.add(TrackedEvent('d'));
+      expect(store.count, 3);
+      expect(store.all().map((e) => e.name), ['b', 'c', 'd']);
+    });
+
+    test('onEvict callback fires with evicted event', () {
+      final evicted = <String>[];
+      final store = EventStore(
+        maxCapacity: 2,
+        onEvict: (event) => evicted.add(event.name),
+      );
+      store.add(TrackedEvent('first'));
+      store.add(TrackedEvent('second'));
+      store.add(TrackedEvent('third'));
+      expect(evicted, ['first']);
+
+      store.add(TrackedEvent('fourth'));
+      expect(evicted, ['first', 'second']);
+    });
+
+    test('remaining decreases as events are added', () {
+      final store = EventStore(maxCapacity: 5);
+      expect(store.remaining, 5);
+      store.add(TrackedEvent('a'));
+      expect(store.remaining, 4);
+      store.add(TrackedEvent('b'));
+      expect(store.remaining, 3);
+    });
+  });
+
+  group('EventStore purge', () {
+    test('purgeOlderThan removes old events', () {
+      final store = EventStore();
+      final old = DateTime.now().subtract(const Duration(hours: 2));
+      final recent = DateTime.now().subtract(const Duration(minutes: 5));
+
+      store.add(TrackedEvent('old1', timestamp: old));
+      store.add(TrackedEvent('old2', timestamp: old));
+      store.add(TrackedEvent('recent', timestamp: recent));
+
+      final removed = store.purgeOlderThan(const Duration(hours: 1));
+      expect(removed, 2);
+      expect(store.count, 1);
+      expect(store.all().first.name, 'recent');
+    });
+
+    test('purgeOlderThan returns 0 when nothing to purge', () {
+      final store = EventStore();
+      store.add(TrackedEvent('recent'));
+      final removed = store.purgeOlderThan(const Duration(hours: 1));
+      expect(removed, 0);
+      expect(store.count, 1);
+    });
+  });
 }

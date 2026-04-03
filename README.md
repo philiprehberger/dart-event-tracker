@@ -16,7 +16,7 @@ Add to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  philiprehberger_event_tracker: ^0.3.0
+  philiprehberger_event_tracker: ^0.4.0
 ```
 
 Then run:
@@ -177,6 +177,23 @@ await tracker.track('page_view');
 await tracker.flush();
 ```
 
+### Memory Management
+
+```dart
+// Bounded store with max 10,000 events
+final store = EventStore(
+  maxCapacity: 10000,
+  onEvict: (event) => print('Evicted: ${event.name}'),
+);
+
+// Check capacity
+print(store.isFull);      // false
+print(store.remaining);   // 9998
+
+// Purge events older than 24 hours
+final removed = store.purgeOlderThan(Duration(hours: 24));
+```
+
 ### Paginated Queries
 
 ```dart
@@ -272,6 +289,10 @@ await tracker.track('event'); // Sent to all three sinks
 
 | Method / Property | Description |
 |-------------------|-------------|
+| `EventStore({maxCapacity, onEvict})` | Create a bounded or unbounded event store |
+| `EventStore.isFull` | Whether the store has reached capacity |
+| `EventStore.remaining` | Remaining capacity (null if unbounded) |
+| `EventStore.purgeOlderThan(duration)` | Remove events older than duration |
 | `add(event)` | Add an event to the store |
 | `all()` | Return all stored events |
 | `eventsNamed(name)` | Return events with the given name |

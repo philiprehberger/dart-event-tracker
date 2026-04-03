@@ -1,15 +1,57 @@
 import 'tracked_event.dart';
 
 /// An in-memory queryable store for tracked events.
+///
+/// Optionally bounded by [maxCapacity]. When the capacity is reached,
+/// the oldest events are evicted (FIFO) to make room for new ones.
 class EventStore {
   final List<TrackedEvent> _events = [];
 
+  /// The maximum number of events this store will hold, or `null` for unbounded.
+  final int? maxCapacity;
+
+  /// Called with an event just before it is evicted due to capacity limits.
+  final void Function(TrackedEvent)? onEvict;
+
   /// Create a new empty event store.
-  EventStore();
+  ///
+  /// If [maxCapacity] is provided, the store will automatically evict the
+  /// oldest events when the limit is reached. The optional [onEvict] callback
+  /// fires for each evicted event.
+  EventStore({this.maxCapacity, this.onEvict}) {
+    if (maxCapacity != null && maxCapacity! <= 0) {
+      throw ArgumentError.value(maxCapacity, 'maxCapacity', 'Must be positive');
+    }
+  }
 
   /// Add an event to the store.
+  ///
+  /// If the store is at [maxCapacity], the oldest event is evicted first.
   void add(TrackedEvent event) {
+    if (maxCapacity != null && _events.length >= maxCapacity!) {
+      final evicted = _events.removeAt(0);
+      onEvict?.call(evicted);
+    }
     _events.add(event);
+  }
+
+  /// Whether the store has reached its [maxCapacity].
+  ///
+  /// Always returns `false` for unbounded stores.
+  bool get isFull => maxCapacity != null && _events.length >= maxCapacity!;
+
+  /// The remaining capacity, or `null` for unbounded stores.
+  int? get remaining =>
+      maxCapacity != null ? maxCapacity! - _events.length : null;
+
+  /// Remove all events older than [age] from now.
+  ///
+  /// Returns the number of events removed.
+  int purgeOlderThan(Duration age) {
+    final cutoff = DateTime.now().subtract(age);
+    final before = _events.length;
+    _events.removeWhere((e) => e.timestamp.isBefore(cutoff));
+    return before - _events.length;
   }
 
   /// Return all stored events.
