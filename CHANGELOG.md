@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-04-02
+
+### Added
+- `EventPriority` enum with `low`, `normal`, `high`, `critical` levels
+- `TrackedEvent.priority` field for ranking event importance
+- `TrackedEvent.sessionId` field for session grouping
+- `EventStore.byPriority()` to filter events by priority level
+- `EventStore.bySession()` to filter events by session ID
+- `EventTracker.onTrack()` lifecycle hook fired after each event
+- `EventTracker.onFlush()` lifecycle hook fired after flush
+- `EventTracker.startSession()` and `endSession()` for automatic session tagging
+
 ## [0.2.0] - 2026-04-01
 
 ### Added

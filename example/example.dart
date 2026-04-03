@@ -27,6 +27,30 @@ Future<void> main() async {
   await tracker.track('page_view', properties: {'page': '/about'});
   await tracker.track('button_click'); // This is filtered out
 
+  // Session tracking
+  tracker.startSession(id: 'user-session-1');
+
+  await tracker.track('page_view', properties: {'page': '/dashboard'});
+  await tracker.track('click', properties: {'button': 'settings'});
+
+  // Query events in the current session
+  final sessionEvents = tracker.store.bySession('user-session-1');
+  print('\nSession events: ${sessionEvents.length}');
+
+  tracker.endSession();
+
+  // Lifecycle hooks
+  tracker.onTrack((event) {
+    print('Tracked: ${event.name}');
+  });
+
+  tracker.onFlush(() {
+    print('Flush complete');
+  });
+
+  await tracker.track('post_session_event');
+  await tracker.flush();
+
   // Query the store
   print('\nTotal events: ${tracker.store.count}');
   print('Page views: ${tracker.store.eventsNamed('page_view').length}');
