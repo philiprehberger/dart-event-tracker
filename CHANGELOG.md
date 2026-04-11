@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-04-11
+
+### Added
+- `TrackedEvent.copyWith()` for creating modified copies while preserving unchanged fields
+
+### Fixed
+- Barrel file structure now follows guide convention (primary barrel exports src, short alias re-exports primary)
+- README Requirements section corrected from "Dart >= 3.5" to "Dart >= 3.6"
+- Enricher example updated to use `copyWith` to prevent silent field loss
+- PR template aligned with guide standard
+- `lints` constraint normalized to `^5.0.0`
+
 ## [0.4.0] - 2026-04-02
 
 ### Added

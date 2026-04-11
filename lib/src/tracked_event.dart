@@ -61,6 +61,25 @@ class TrackedEvent {
     return '${segment(8)}-${segment(4)}-${segment(4)}-${segment(4)}-${segment(12)}';
   }
 
+  /// Create a copy of this event with the given fields replaced.
+  TrackedEvent copyWith({
+    String? name,
+    Map<String, String>? properties,
+    DateTime? timestamp,
+    String? id,
+    EventPriority? priority,
+    String? sessionId,
+  }) {
+    return TrackedEvent(
+      name ?? this.name,
+      properties: properties ?? this.properties,
+      timestamp: timestamp ?? this.timestamp,
+      id: id ?? this.id,
+      priority: priority ?? this.priority,
+      sessionId: sessionId ?? this.sessionId,
+    );
+  }
+
   @override
   String toString() =>
       'TrackedEvent($name, properties: $properties, timestamp: $timestamp, id: $id, priority: $priority, sessionId: $sessionId)';

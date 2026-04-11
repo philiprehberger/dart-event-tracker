@@ -8,7 +8,7 @@ Analytics event tracking with filtering, buffering, and multi-sink export
 
 ## Requirements
 
-- Dart >= 3.5
+- Dart >= 3.6
 
 ## Installation
 
@@ -16,7 +16,7 @@ Add to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  philiprehberger_event_tracker: ^0.4.0
+  philiprehberger_event_tracker: ^0.5.0
 ```
 
 Then run:
@@ -28,7 +28,7 @@ dart pub get
 ## Usage
 
 ```dart
-import 'package:philiprehberger_event_tracker/event_tracker.dart';
+import 'package:philiprehberger_event_tracker/philiprehberger_event_tracker.dart';
 
 final tracker = EventTracker();
 tracker.addSink(const ConsoleSink());
@@ -92,8 +92,7 @@ final tracker = EventTracker();
 tracker.addSink(const ConsoleSink());
 
 // Add session ID to every event
-tracker.addEnricher((event) => TrackedEvent(
-  event.name,
+tracker.addEnricher((event) => event.copyWith(
   properties: {...event.properties, 'session': 'abc-123'},
 ));
 
@@ -233,6 +232,7 @@ await tracker.track('event'); // Sent to all three sinks
 | Method / Property | Description |
 |-------------------|-------------|
 | `TrackedEvent(name, {properties, timestamp, id, priority, sessionId})` | Create a tracked event |
+| `copyWith({name, properties, timestamp, id, priority, sessionId})` | Create a copy with the given fields replaced |
 | `name` | Event name |
 | `properties` | Key-value string map |
 | `timestamp` | When the event occurred |

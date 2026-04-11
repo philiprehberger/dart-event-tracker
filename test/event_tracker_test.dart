@@ -62,6 +62,47 @@ void main() {
       final event = TrackedEvent('test', sessionId: 'sess-1');
       expect(event.sessionId, 'sess-1');
     });
+
+    test('copyWith preserves all fields when no overrides given', () {
+      final ts = DateTime(2026, 3, 15);
+      final event = TrackedEvent(
+        'click',
+        properties: {'button': 'ok'},
+        timestamp: ts,
+        id: 'my-id',
+        priority: EventPriority.high,
+        sessionId: 'sess-1',
+      );
+      final copy = event.copyWith();
+      expect(copy.name, 'click');
+      expect(copy.properties, {'button': 'ok'});
+      expect(copy.timestamp, ts);
+      expect(copy.id, 'my-id');
+      expect(copy.priority, EventPriority.high);
+      expect(copy.sessionId, 'sess-1');
+    });
+
+    test('copyWith overrides individual fields', () {
+      final event = TrackedEvent(
+        'click',
+        properties: {'a': '1'},
+        priority: EventPriority.low,
+        sessionId: 'old',
+      );
+      final copy = event.copyWith(
+        name: 'tap',
+        properties: {'b': '2'},
+        priority: EventPriority.critical,
+        sessionId: 'new',
+      );
+      expect(copy.name, 'tap');
+      expect(copy.properties, {'b': '2'});
+      expect(copy.priority, EventPriority.critical);
+      expect(copy.sessionId, 'new');
+      // Original fields preserved
+      expect(copy.id, event.id);
+      expect(copy.timestamp, event.timestamp);
+    });
   });
 
   group('EventStore', () {
